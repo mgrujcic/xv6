@@ -20,7 +20,7 @@ exec(char *path, char **argv)
   struct proc *curproc = myproc();
 
   begin_op();
-
+  
   if((ip = namei(path)) == 0){
     end_op();
     cprintf("exec: fail\n");
@@ -29,6 +29,51 @@ exec(char *path, char **argv)
   ilock(ip);
   pgdir = 0;
 
+  //check for #!
+  char checksb[2];
+  char *line = 0;
+  char **newargv = 0;
+  uint linesz, readsz = readi(ip, checksb, 0, 2);
+  if(readsz==2 && checksb[0]== '#' && checksb[1]=='!'){
+    line = kalloc();
+    if(line == 0){
+      cprintf("exec: cannot kalloc for line");
+      goto bad;
+    }
+    readsz = readi(ip, line, 0, PGSIZE);
+    for(linesz=2; linesz<readsz; linesz++){
+      if(line[linesz] == '\n'){
+        line[linesz] = '\0';
+        break;
+      }
+    }
+    if(linesz == readsz){
+      cprintf("exec: shebang path too long\n");
+      goto bad;
+    }
+    newargv = (char **) kalloc();
+    if(newargv == 0){
+      cprintf("exec: cannot kalloc for newargv");
+      goto bad;
+    }
+    newargv[0] = line+2;
+    int argi = 0;
+    for(; argv[argi]; argi++)
+      newargv[argi+1] = argv[argi];
+    
+    newargv[argi+1] = 0;
+    argv = newargv;
+    path = newargv[0];
+    iunlockput(ip);
+
+    if((ip = namei(path)) == 0){
+      end_op();
+      cprintf("exec: fail\n");
+      return -1;
+    }
+    ilock(ip);
+  }
+   
   // Check ELF header
   if(readi(ip, (char*)&elf, 0, sizeof(elf)) != sizeof(elf))
     goto bad;
@@ -101,9 +146,17 @@ exec(char *path, char **argv)
   curproc->tf->esp = sp;
   switchuvm(curproc);
   freevm(oldpgdir);
+  if(line)
+   kfree(line);
+  if(newargv)
+    kfree((char *)newargv);
   return 0;
 
  bad:
+  if(line)
+   kfree(line);
+  if(newargv)
+    kfree((char *)newargv);
   if(pgdir)
     freevm(pgdir);
   if(ip){
