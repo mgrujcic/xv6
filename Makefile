@@ -146,7 +146,7 @@ vectors.S: vectors.pl
 ULIB = ulib.o usys.o printf.o umalloc.o
 
 _%: %.o $(ULIB)
-	$(LD) $(LDFLAGS) -N -e main -Ttext 0 -o $@ $^
+	$(LD) $(LDFLAGS) -N -e main -Ttext 0x1000 -o $@ $^
 	$(OBJDUMP) -S $@ > $*.asm
 	$(OBJDUMP) -t $@ | sed '1,/SYMBOL TABLE/d; s/ .* / /; /^$$/d' > $*.sym
 
@@ -182,6 +182,8 @@ UPROGS=\
 	_wc\
 	_zombie\
 	_clonetest\
+	_nulldereftest\
+	_schedulingtest\
 
 fs.img: mkfs README shebang_test $(UPROGS)
 	./mkfs fs.img README shebang_test $(UPROGS)
@@ -249,7 +251,7 @@ qemu-nox-gdb: fs.img xv6.img .gdbinit
 # check in that version.
 
 EXTRA=\
-	mkfs.c ulib.c user.h cat.c clonetest.c echo.c forktest.c grep.c kill.c\
+	mkfs.c ulib.c user.h cat.c clonetest.c nulldereftest.c schedulingtest.c echo.c forktest.c grep.c kill.c\
 	ln.c ls.c mkdir.c rm.c stressfs.c usertests.c wc.c zombie.c\
 	printf.c umalloc.c\
 	README shebang_test dot-bochsrc *.pl toc.* runoff runoff1 runoff.list\
