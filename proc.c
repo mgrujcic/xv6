@@ -535,6 +535,6 @@ procdump(void)
 
 int 
 clone(void (*fcn)(void *, void *), void *arg1, void *arg2, void *stack){
-  cprintf("stub\n");
+  cprintf("stub %p %p %p %p\n", fcn, arg1, arg2, stack);
   return 0;
 }
