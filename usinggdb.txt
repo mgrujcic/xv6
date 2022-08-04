@@ -1,0 +1,1 @@
+add-symbol-file filename text-address //(0x1000)
