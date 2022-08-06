@@ -392,6 +392,50 @@ copyout(pde_t *pgdir, uint va, void *p, uint len)
   }
   return 0;
 }
+/* 
+void
+makerdonly(pde_t *pgdir, void *addr, int sz){
+  if(sz <= 0)
+    panic("rdonlytext: sz <= 0");
+  if(((uint) addr) % PGSIZE != 0)
+    panic("rdonlytext: addr not page aligned");
+
+  pte_t *pte;
+  for(int i = 0; i<sz; i+= PGSIZE){
+    if((pte = walkpgdir(pgdir, addr + i, 0)) == 0)
+      panic("makerdonly: pte should exist");
+    *pte &= ~PTE_W;
+  }
+}
+*/
+
+int mprotect(void *addr, int len){
+  if(((uint) addr) % PGSIZE != 0)
+    return -1;
+  if(len <= 0)
+    return -1;
+  
+  pde_t *pgdir = myproc()->pgdir;
+  for(int i = 0; i < len; i++){
+    pte_t *pte = walkpgdir(pgdir, addr + i*PGSIZE, 1); //alloc 0 or 1?
+    if(pte == 0) //undo the changes until now? 
+      return -1;
+    *pte &= ~PTE_W;
+  }
+  lcr3(V2P(pgdir));
+  return 0;
+}
+
+int munprotect(void *addr, int len){
+  if(((uint) addr) % PGSIZE != 0)
+    return -1;
+  if(len <= 0)
+    return -1;
+  
+  return 0;
+}
+
+
 
 //PAGEBREAK!
 // Blank page.

@@ -84,7 +84,7 @@ exec(char *path, char **argv)
     goto bad;
 
   // Load program into memory.
-  sz = elf.entry; //so pages before 0x1000 are not mapped
+  sz = 0;
   for(i=0, off=elf.phoff; i<elf.phnum; i++, off+=sizeof(ph)){
     if(readi(ip, (char*)&ph, off, sizeof(ph)) != sizeof(ph))
       goto bad;
@@ -94,6 +94,7 @@ exec(char *path, char **argv)
       goto bad;
     if(ph.vaddr + ph.memsz < ph.vaddr)
       goto bad;
+    sz = ph.vaddr; //so the first page is not mapped
     if((sz = allocuvm(pgdir, sz, ph.vaddr + ph.memsz)) == 0)
       goto bad;
     if(ph.vaddr % PGSIZE != 0)
